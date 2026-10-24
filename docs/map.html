@@ -87,6 +87,12 @@ a{color:var(--accent)}
 <script>
 (function () {
   var D = window.MAP_DATA;
+  if (!D || !window.L) {
+    document.getElementById('map').innerHTML = '<p style="padding:24px;max-width:460px;font:15px/1.5 system-ui,sans-serif">' +
+      (!window.L ? 'The map library could not load. Check the internet connection and reload.'
+                 : 'Map data not found. Open <b>docs/map.html</b> from the project folder after running <code>python run_pipeline.py</code>, which writes <b>docs/map_data.js</b> next to it.') + '</p>';
+    return;
+  }
   var css = getComputedStyle(document.documentElement);
   var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches &&
              document.documentElement.getAttribute('data-theme') !== 'light';

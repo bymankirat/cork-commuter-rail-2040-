@@ -34,6 +34,7 @@ select{width:100%;font:inherit;color:var(--fg);background:var(--bg);border:1px s
 .card .flag{font-size:11px;color:var(--warm)}
 .foot{color:var(--muted);font-size:12px;margin-top:auto}
 a{color:var(--accent)}
+.tiles-dark{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9)}
 .leaflet-popup-content{font:13px/1.45 system-ui,sans-serif;margin:12px 14px}
 .pop h3{margin:0 0 6px;font-size:14px}
 .pop table{border-collapse:collapse;width:100%}
@@ -78,7 +79,7 @@ a{color:var(--accent)}
     <div class="cards" id="cards"></div>
   </div>
   <p class="foot">Station positions are approximate. Independent analysis by Mankirat Singh, not an Iarnród Éireann publication.
-  Basemap © OpenStreetMap contributors © CARTO.</p>
+  Basemap © OpenStreetMap contributors.</p>
 </aside>
 <div id="map" role="region" aria-label="Map of Cork Small Areas and rail stations"></div>
 
@@ -90,10 +91,12 @@ a{color:var(--accent)}
   var css = getComputedStyle(document.documentElement);
   var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches &&
              document.documentElement.getAttribute('data-theme') !== 'light';
-  var map = L.map('map', { zoomControl: true, preferCanvas: true }).setView([51.905, -8.38], 11);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/' + (dark ? 'dark_all' : 'light_all') + '/{z}/{x}/{y}{r}.png', {
-    maxZoom: 18, subdomains: 'abcd',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+  var map = L.map('map', { zoomControl: true, preferCanvas: true });
+  map.fitBounds(L.latLngBounds(D.proposed.map(function (s) { return [s.lat, s.lon]; })).pad(0.35));
+  // OpenStreetMap tiles need no key; in dark mode they are inverted to match the page
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, className: dark ? 'tiles-dark' : '',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(map);
 
   var BLUES = ['#eef4f9', '#c9dcec', '#97bcd9', '#5f95bf', '#2f6d9f', '#16466f'];

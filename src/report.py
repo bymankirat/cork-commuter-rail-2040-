@@ -10,7 +10,7 @@ import pandas as pd
 from config import CATCH_KM, DOCS, RESULTS, SHIFT_M, SOURCES
 
 CSS = """
-:root{--bg:#f6f5f1;--fg:#1d2733;--muted:#5b6672;--card:#fff;--line:#dcd9d2;--accent:#1f5f8b;--warm:#c4661f;--chip:#eceae4}
+:root{--l-mallow:#1f5f8b;--l-midleton:#2e7d5b;--l-cobh:#7a4fa3;--bg:#f6f5f1;--fg:#1d2733;--muted:#5b6672;--card:#fff;--line:#dcd9d2;--accent:#1f5f8b;--warm:#c4661f;--chip:#eceae4}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181d;--fg:#e8ecf0;--muted:#9aa5b1;--card:#1c222a;--line:#313a45;--accent:#7fb6e0;--warm:#e89a5c;--chip:#252d37;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#14181d;--fg:#e8ecf0;--muted:#9aa5b1;--card:#1c222a;--line:#313a45;--accent:#7fb6e0;--warm:#e89a5c;--chip:#252d37;color-scheme:dark}
 *{box-sizing:border-box}
@@ -35,12 +35,68 @@ th:first-child,td:first-child{text-align:left}
 th{background:var(--chip);font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .note{background:var(--card);border-left:3px solid var(--warm);padding:12px 16px;border-radius:6px;font-size:15px}
 .btn{display:inline-block;background:var(--accent);color:var(--card);text-decoration:none;font:600 15px system-ui,sans-serif;padding:10px 16px;border-radius:8px;margin-right:8px}
+.netcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 12px 8px;margin:24px 0}
+.netcard h2{margin:0 4px 4px;font-size:17px}.netcard p{margin:0 4px 8px;font:13px/1.5 system-ui,sans-serif;color:var(--muted)}
+.tscroll{overflow-x:auto}.transit{display:block;width:100%;min-width:720px;height:auto}
+.transit .trk{fill:none;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}.transit .dash{stroke-dasharray:2 12}
+.transit .old{fill:var(--card);stroke:var(--fg);stroke-width:2.5}.transit .new{fill:var(--warm);stroke:var(--card);stroke-width:3}
+.transit .sname{font:500 11.5px system-ui,sans-serif;fill:var(--muted);text-anchor:middle}.transit .new-t{fill:var(--fg);font-weight:700}
+.transit .snum{font:600 10.5px system-ui,sans-serif;fill:var(--warm);text-anchor:middle}
+.transit .lname{font:700 12px system-ui,sans-serif}
+.legend-inline{display:flex;gap:16px;flex-wrap:wrap;font:13px system-ui,sans-serif;color:var(--muted);margin:6px 4px 4px}
+.legend-inline i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.mapframe{width:100%;height:600px;border:1px solid var(--line);border-radius:12px;display:block;background:var(--card)}
+.bar{display:flex;align-items:center;gap:8px;justify-content:flex-end}.bar span{display:inline-block;height:8px;border-radius:4px;background:var(--warm)}
 a{color:var(--accent)}code{font:13px ui-monospace,Menlo,monospace;background:var(--chip);padding:1px 5px;border-radius:4px}
 """
 
 
 def n0(x):
     return f"{x:,.0f}"
+
+
+# Schematic positions for the Cork commuter network (not to scale). Proposed stations are
+# drawn from results; existing ones are fixed. Each line: list of (name, x, proposed?).
+LINES = [
+    ("Mallow line", "var(--l-mallow)", 70, 72, [("Cork Kent", 70, False), ("Blackpool/Kilbarry", 210, True),
+                                               ("Monard", 330, True), ("Blarney/Stoneview", 450, True), ("Mallow", 860, False)]),
+    ("Midleton line", "var(--l-midleton)", 70, 190, [("Cork Kent", 70, False), ("Tivoli", 170, True), ("Dunkettle", 260, True),
+                                                     ("Little Island", 350, False), ("Glounthaune", 440, False),
+                                                     ("Carrigtwohill West", 560, True), ("Carrigtwohill", 650, False),
+                                                     ("Water-Rock", 750, True), ("Midleton", 860, False)]),
+    ("Cobh line", "var(--l-cobh)", 440, 300, [("Fota", 520, False), ("Ballynoe", 610, True), ("Carrigaloe", 690, False),
+                                              ("Rushbrooke", 775, False), ("Cobh", 860, False)]),
+]
+
+
+def transit_svg(ns: pd.DataFrame) -> str:
+    car = dict(zip(ns["station"], ns["car_commuters_1km"]))
+    parts = ['<svg viewBox="0 0 920 360" role="img" aria-labelledby="tt" class="transit">'
+             '<title id="tt">Schematic of Cork\'s three commuter lines with the eight proposed stations</title>']
+    # track
+    m = LINES[0]
+    parts.append(f'<path d="M70 190 L70 120 Q70 72 118 72 L560 72" stroke="{m[1]}" class="trk"/>'
+                 f'<path d="M560 72 L860 72" stroke="{m[1]}" class="trk dash"/>')
+    parts.append(f'<path d="M70 190 L860 190" stroke="{LINES[1][1]}" class="trk"/>')
+    parts.append(f'<path d="M440 190 Q440 300 488 300 L860 300" stroke="{LINES[2][1]}" class="trk"/>')
+    for name, colour, _, y, stops in LINES:
+        for k, (st, x, new) in enumerate(stops):
+            if st == "Cork Kent" and name != "Mallow line":
+                continue
+            yy = y
+            if new:
+                parts.append(f'<circle cx="{x}" cy="{yy}" r="9" class="new"><title>{html.escape(st)}: '
+                             f'{car.get(st, 0):,.0f} car commuters within 1 km</title></circle>')
+            else:
+                parts.append(f'<circle cx="{x}" cy="{yy}" r="6" class="old"/>')
+            above = (k % 2 == 0)
+            ty = yy - 18 if above else yy + 26
+            parts.append(f'<text x="{x}" y="{ty}" class="{"sname new-t" if new else "sname"}">{html.escape(st)}</text>')
+            if new:
+                ny = ty - 14 if above else ty + 14
+                parts.append(f'<text x="{x}" y="{ny}" class="snum">{car.get(st, 0):,.0f} by car ≤1 km</text>')
+    parts.append('</svg>')
+    return "".join(parts)
 
 
 def table(df, cols):
@@ -82,10 +138,15 @@ def write():
     ]
     tiles_html = "".join(f'<div class="tile"><b>{a}</b><span>{html.escape(b)}</span></div>' for a, b in tiles)
 
+    cmax = max(float(top_car["car_commuters_1km"].max()), 1.0)
+
+    def barcell(v):
+        return f'<div class="bar">{n0(v)}<span style="width:{int(70 * v / cmax)}px"></span></div>'
+
     reach_tbl = table(top_car, [
         ("station", "Station", None), ("line", "Line", None),
         ("pop_1km", "People ≤1 km", n0), ("pop_new_to_rail_1km", "…not now ≤1 km of rail", n0),
-        ("car_commuters_1km", "Car commuters ≤1 km", n0), ("car_commuters_2km", "Car commuters ≤2 km", n0),
+        ("car_commuters_1km", "Car commuters ≤1 km", barcell), ("car_commuters_2km", "Car commuters ≤2 km", n0),
         ("top3_by_car_1km_pct", f"In top 3 if moved ≤{SHIFT_M} m", lambda v: f"{v:.0f}%")])
     est_cols = [("station", "Station", None), ("cork_2022", "Today's service", n0),
                 ("cork_2022_low", "95% low", n0), ("cork_2022_high", "95% high", n0)]
@@ -117,6 +178,12 @@ extra rail commuters each station could add, today and in 2040.</p>
 <p class="meta">Mankirat Singh · Independent analysis, not an Iarnród Éireann or NTA publication ·
 <a href="https://github.com/bymankirat">Code</a> · <a href="https://bymankirat.github.io/myportfolio/">Portfolio</a></p>
 <div class="tiles">{tiles_html}</div>
+<section class="netcard" aria-label="Network diagram">
+<h2>The network with eight new stations</h2>
+<p>Cork's three commuter lines, not to scale. Orange: proposed stations, with the number of people within 1 km who drive or are driven to work today.</p>
+<div class="tscroll">{transit_svg(ns)}</div>
+<div class="legend-inline"><span><i style="background:var(--l-mallow)"></i>Mallow line</span><span><i style="background:var(--l-midleton)"></i>Midleton line</span><span><i style="background:var(--l-cobh)"></i>Cobh line</span><span><i style="background:var(--warm)"></i>Proposed station</span></div>
+</section>
 <p><a class="btn" href="map.html">Open the interactive map →</a> Every Small Area, every station, both scenarios.</p>
 
 <h2>1. Who lives near each proposed station</h2>
@@ -124,8 +191,8 @@ extra rail commuters each station could add, today and in 2040.</p>
 Each Small Area is counted once, for its nearest proposed station. The station positions are approximate,
 so every station was moved at random by up to {SHIFT_M} m, {300} times:
 {("the stations that stay in the top three in at least 90% of moves are " + ", ".join(html.escape(s) for s in stable) + ".") if stable else "no station stays in the top three in 90% of moves, so the ranking depends on exact positions."}</p>
-<figure><img src="figures/5_map.png" alt="Map of Cork Small Areas shaded by car commuting, with existing and proposed stations">
-<figcaption>Each dot is a Census 2022 Small Area, sized by the number of commuters and shaded by the share going by car.</figcaption></figure>
+<iframe class="mapframe" src="map.html" title="Interactive map of Cork Small Areas and rail stations" loading="lazy"></iframe>
+<p class="meta">Click any area or station for details, or <a href="map.html">open the map full screen</a>.</p>
 <figure><img src="figures/3_reach.png" alt="Bar chart of car commuters within 1 and 2 km of each proposed station"></figure>
 {reach_tbl}
 

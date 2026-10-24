@@ -1,0 +1,9 @@
+station,line,lat,lon,confidence,note
+Blackpool/Kilbarry,Mallow line,51.9137,-8.4703,approximate,north side of Cork city; accelerated with separate planning application
+Monard,Mallow line,51.9330,-8.4990,approximate,planned new town north of the city; most future homes are not yet built
+Blarney/Stoneview,Mallow line,51.9420,-8.5410,approximate,park and ride planned
+Tivoli,Cobh/Midleton line,51.9046,-8.4300,approximate,redeveloped Cork docks east of the city
+Dunkettle,Cobh/Midleton line,51.9070,-8.3920,approximate,road interchange; park and ride of about 300 spaces planned
+Ballynoe,Cobh line,51.8770,-8.3130,low,north Cobh; position on the line between Fota and Carrigaloe is a best guess
+Carrigtwohill West,Midleton line,51.9150,-8.2860,approximate,new industrial area west of Carrigtwohill
+Water-Rock,Midleton line,51.9175,-8.2050,approximate,new industrial area west of Midleton

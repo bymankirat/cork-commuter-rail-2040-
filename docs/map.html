@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cork Commuter Rail Map</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#f6f5f1;--panel:#ffffff;--fg:#1d2733;--muted:#5b6672;--line:#dcd9d2;--accent:#1f5f8b;--warm:#c4661f;--chip:#eceae4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181d;--panel:#1c222a;--fg:#e8ecf0;--muted:#9aa5b1;--line:#313a45;--accent:#7fb6e0;--warm:#e89a5c;--chip:#252d37;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14181d;--panel:#1c222a;--fg:#e8ecf0;--muted:#9aa5b1;--line:#313a45;--accent:#7fb6e0;--warm:#e89a5c;--chip:#252d37;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,'Segoe UI',Arial,sans-serif;display:grid;grid-template-columns:340px 1fr;height:100dvh}
+aside{background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:18px 16px 24px;display:flex;flex-direction:column;gap:14px;min-width:0}
+#map{height:100%;min-height:0}
+h1{font-size:18px;margin:0;line-height:1.25;text-wrap:balance}
+.sub{color:var(--muted);font-size:13px;margin:4px 0 0}
+label.lbl{display:block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+select{width:100%;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 8px}
+.toggles{display:flex;flex-wrap:wrap;gap:6px}
+.toggles button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:99px;padding:5px 11px;cursor:pointer}
+.toggles button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+.legend{display:flex;flex-direction:column;gap:4px;font-size:12px}
+.legend .row{display:flex;align-items:center;gap:8px}
+.legend i{width:22px;height:12px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,.08)}
+.cards{display:flex;flex-direction:column;gap:8px}
+.card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg);text-align:left;font:inherit;color:inherit;width:100%}
+.card:hover,.card:focus-visible{border-color:var(--warm);outline:none}
+.card b{font-size:14px}
+.card .line{color:var(--muted);font-size:12px}
+.card .nums{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;margin-top:6px;font-size:12px}
+.card .nums span{color:var(--muted)}
+.card .flag{font-size:11px;color:var(--warm)}
+.foot{color:var(--muted);font-size:12px;margin-top:auto}
+a{color:var(--accent)}
+.leaflet-popup-content{font:13px/1.45 system-ui,sans-serif;margin:12px 14px}
+.pop h3{margin:0 0 6px;font-size:14px}
+.pop table{border-collapse:collapse;width:100%}
+.pop td{padding:2px 0;border-bottom:1px solid #eee}
+.pop td:last-child{text-align:right;font-variant-numeric:tabular-nums;padding-left:10px}
+.pop .note{color:#5b6672;font-size:12px;margin-top:6px}
+@media (max-width:760px){
+  body{grid-template-columns:1fr;grid-template-rows:56dvh 1fr}
+  #map{grid-row:1}
+  aside{grid-row:2;border-right:0;border-top:1px solid var(--line);
+    padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+}
+</style>
+</head>
+<body>
+<aside>
+  <div>
+    <h1>Cork Commuter Rail: eight proposed stations</h1>
+    <p class="sub">Census 2022 Small Areas. Click a station or any area for details. <a href="index.html">Read the report</a></p>
+  </div>
+  <div>
+    <label class="lbl" for="metric">Colour areas by</label>
+    <select id="metric">
+      <option value="carPct">Share of commuters going by car</option>
+      <option value="railPct">Share of commuters going by train</option>
+      <option value="trav">People travelling to work</option>
+      <option value="gDart">Extra rail commuters, DART-like service, 2040</option>
+      <option value="gCork">Extra rail commuters, today's service, 2022</option>
+    </select>
+  </div>
+  <div>
+    <span class="lbl">Show</span>
+    <div class="toggles">
+      <button id="t1" aria-pressed="true">1 km rings</button>
+      <button id="t2" aria-pressed="false">2 km rings</button>
+      <button id="tex" aria-pressed="true">Existing stations</button>
+    </div>
+  </div>
+  <div class="legend" id="legend" aria-live="polite"></div>
+  <div>
+    <span class="lbl">Proposed stations, most car commuters within 1 km first</span>
+    <div class="cards" id="cards"></div>
+  </div>
+  <p class="foot">Station positions are approximate. Independent analysis by Mankirat Singh, not an Iarnród Éireann publication.
+  Basemap © OpenStreetMap contributors © CARTO.</p>
+</aside>
+<div id="map" role="region" aria-label="Map of Cork Small Areas and rail stations"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="map_data.js"></script>
+<script>
+(function () {
+  var D = window.MAP_DATA;
+  var css = getComputedStyle(document.documentElement);
+  var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches &&
+             document.documentElement.getAttribute('data-theme') !== 'light';
+  var map = L.map('map', { zoomControl: true, preferCanvas: true }).setView([51.905, -8.38], 11);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/' + (dark ? 'dark_all' : 'light_all') + '/{z}/{x}/{y}{r}.png', {
+    maxZoom: 18, subdomains: 'abcd',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+  }).addTo(map);
+
+  var BLUES = ['#eef4f9', '#c9dcec', '#97bcd9', '#5f95bf', '#2f6d9f', '#16466f'];
+  var ORANGES = ['#fdf1e6', '#f9d3b0', '#f2ab74', '#e3823f', '#c4661f', '#8a420f'];
+  var LABELS = { carPct: '% by car', railPct: '% by train', trav: 'people', gDart: 'extra commuters', gCork: 'extra commuters' };
+  var fmt = function (v, d) { return v == null ? '–' : Number(v).toLocaleString('en-IE', { maximumFractionDigits: d || 0 }); };
+
+  function breaks(key) {
+    var v = D.areas.features.map(function (f) { return f.properties[key]; })
+      .filter(function (x) { return x != null && (key.charAt(0) !== 'g' || x > 0.05); }).sort(function (a, b) { return a - b; });
+    if (!v.length) return [0];
+    var out = [];
+    [0.2, 0.4, 0.6, 0.8, 0.95].forEach(function (q) {
+      var b = v[Math.min(v.length - 1, Math.floor(q * v.length))];
+      if (!out.length || b > out[out.length - 1]) out.push(b);   // equal breaks merge into one class
+    });
+    return out;
+  }
+  var metric = 'carPct', br = breaks(metric);
+  function palette() {
+    var pal = metric.charAt(0) === 'g' ? ORANGES : BLUES;
+    return pal.slice(pal.length - (br.length + 1));   // darkest classes kept when fewer breaks
+  }
+  function colour(v) {
+    var pal = palette();
+    if (v == null) return 'transparent';
+    if (metric.charAt(0) === 'g' && v <= 0.05) return 'transparent';
+    for (var i = 0; i < br.length; i++) if (v <= br[i]) return pal[i];
+    return pal[pal.length - 1];
+  }
+  function style(f) {
+    return { fillColor: colour(f.properties[metric]), fillOpacity: 0.72, color: dark ? '#0d1116' : '#ffffff', weight: 0.4 };
+  }
+  function areaPopup(p) {
+    return '<div class="pop"><h3>' + p.ed + '</h3><table>' +
+      '<tr><td>Population</td><td>' + fmt(p.pop) + '</td></tr>' +
+      '<tr><td>Travel to work</td><td>' + fmt(p.trav) + '</td></tr>' +
+      '<tr><td>By car (driver or passenger)</td><td>' + fmt(p.car) + ' (' + fmt(p.carPct, 0) + '%)</td></tr>' +
+      '<tr><td>By train</td><td>' + fmt(p.rail) + '</td></tr>' +
+      '<tr><td>By bus</td><td>' + fmt(p.bus) + '</td></tr>' +
+      '<tr><td>On foot or bicycle</td><td>' + fmt(p.wc) + '</td></tr>' +
+      '<tr><td>Nearest station now</td><td>' + p.nEx + ', ' + fmt(p.dEx, 1) + ' km</td></tr>' +
+      '<tr><td>Nearest proposed</td><td>' + p.nNew + ', ' + fmt(p.dNew, 1) + ' km</td></tr>' +
+      '<tr><td>Extra rail commuters (DART-like, 2040)</td><td>' + fmt(p.gDart, 1) + '</td></tr>' +
+      '</table><div class="note">Small Area ' + p.sa + ', Census 2022</div></div>';
+  }
+  var areas = L.geoJSON(D.areas, {
+    style: style,
+    onEachFeature: function (f, layer) {
+      layer.bindPopup(function () { return areaPopup(f.properties); }, { maxWidth: 300 });
+      layer.on('mouseover', function () { layer.setStyle({ weight: 2, color: css.getPropertyValue('--warm').trim() || '#c4661f' }); });
+      layer.on('mouseout', function () { areas.resetStyle(layer); });
+    }
+  }).addTo(map);
+
+  function drawLegend() {
+    var pal = palette(), d = metric === 'railPct' ? 1 : 0, unit = ' ' + LABELS[metric], rows = [];
+    for (var i = 0; i < pal.length; i++) {
+      var txt;
+      if (i === 0) txt = 'up to ' + fmt(br[0], d);
+      else if (i === pal.length - 1) txt = 'over ' + fmt(br[br.length - 1], d);
+      else txt = fmt(br[i - 1], d) + ' to ' + fmt(br[i], d);
+      rows.push('<div class="row"><i style="background:' + pal[i] + '"></i>' + txt + unit + '</div>');
+    }
+    if (metric.charAt(0) === 'g') rows.push('<div class="row"><i style="background:transparent"></i>no gain</div>');
+    document.getElementById('legend').innerHTML = rows.join('');
+  }
+  drawLegend();
+  document.getElementById('metric').addEventListener('change', function (e) {
+    metric = e.target.value; br = breaks(metric); areas.setStyle(style); drawLegend();
+  });
+
+  var exLayer = L.layerGroup(D.existing.map(function (s) {
+    return L.circleMarker([s.lat, s.lon], { radius: 6, color: '#ffffff', weight: 2, fillColor: '#1f5f8b', fillOpacity: 1 })
+      .bindTooltip(s.name + ' (existing)');
+  })).addTo(map);
+
+  function stationPopup(s) {
+    var dart = s.dart_2022 != null;
+    return '<div class="pop"><h3>' + s.station + '</h3><table>' +
+      '<tr><td>Line</td><td>' + s.line + '</td></tr>' +
+      '<tr><td>People within 1 km / 2 km</td><td>' + fmt(s.pop_1km) + ' / ' + fmt(s.pop_2km) + '</td></tr>' +
+      '<tr><td>…not already within 1 km of rail</td><td>' + fmt(s.pop_new_to_rail_1km) + '</td></tr>' +
+      '<tr><td>Car commuters within 1 km / 2 km</td><td>' + fmt(s.car_commuters_1km) + ' / ' + fmt(s.car_commuters_2km) + '</td></tr>' +
+      '<tr><td>Extra rail commuters, today\'s service</td><td>' + fmt(s.cork_2022) + ' (' + fmt(s.cork_2022_low) + '–' + fmt(s.cork_2022_high) + ')</td></tr>' +
+      (dart ? '<tr><td>Extra, DART-like service, 2022</td><td>' + fmt(s.dart_2022) + '</td></tr>' +
+              '<tr><td>Extra, DART-like service, 2040</td><td>' + fmt(s.dart_2040_low) + '–' + fmt(s.dart_2040_high) + '</td></tr>' : '') +
+      '<tr><td>In top 3 if moved up to 600 m</td><td>' + fmt(s.top3_by_car_1km_pct) + '% of tries</td></tr>' +
+      '</table><div class="note">Position ' + s.confidence + '. ' + s.note + '.</div></div>';
+  }
+  var rings1 = L.layerGroup(), rings2 = L.layerGroup(), markers = {};
+  D.proposed.forEach(function (s) {
+    rings1.addLayer(L.circle([s.lat, s.lon], { radius: 1000, color: '#c4661f', weight: 1.5, fill: false, dashArray: '4 4' }));
+    rings2.addLayer(L.circle([s.lat, s.lon], { radius: 2000, color: '#c4661f', weight: 1, fill: false, dashArray: '2 6' }));
+    markers[s.station] = L.circleMarker([s.lat, s.lon], { radius: 9, color: '#ffffff', weight: 2.5, fillColor: '#c4661f', fillOpacity: 1 })
+      .bindPopup(stationPopup(s), { maxWidth: 320 }).bindTooltip(s.station).addTo(map);
+  });
+  rings1.addTo(map);
+
+  function toggle(id, layer) {
+    var b = document.getElementById(id);
+    b.addEventListener('click', function () {
+      var on = b.getAttribute('aria-pressed') !== 'true';
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      if (on) layer.addTo(map); else map.removeLayer(layer);
+    });
+  }
+  toggle('t1', rings1); toggle('t2', rings2); toggle('tex', exLayer);
+
+  var cards = document.getElementById('cards');
+  D.proposed.slice().sort(function (a, b) { return b.car_commuters_1km - a.car_commuters_1km; }).forEach(function (s) {
+    var el = document.createElement('button');
+    el.className = 'card';
+    el.innerHTML = '<b>' + s.station + '</b> <span class="line">' + s.line + '</span>' +
+      (s.confidence === 'low' ? ' <span class="flag">position uncertain</span>' : '') +
+      '<div class="nums"><span>Car commuters ≤1 km</span><strong>' + fmt(s.car_commuters_1km) + '</strong>' +
+      '<span>People ≤1 km</span><strong>' + fmt(s.pop_1km) + '</strong>' +
+      '<span>Extra rail, today</span><strong>' + fmt(s.cork_2022) + '</strong>' +
+      (s.dart_2040_high != null ? '<span>Extra rail, DART-like 2040</span><strong>' + fmt(s.dart_2040_low) + '–' + fmt(s.dart_2040_high) + '</strong>' : '') +
+      '</div>';
+    el.addEventListener('click', function () {
+      map.flyTo([s.lat, s.lon], 14, { duration: 0.8 });
+      setTimeout(function () { markers[s.station].openPopup(); }, 850);
+    });
+    cards.appendChild(el);
+  });
+})();
+</script>
+</body>
+</html>

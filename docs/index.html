@@ -1,0 +1,112 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cork Commuter Rail 2040</title><style>
+:root{--l-mallow:#1f5f8b;--l-midleton:#2e7d5b;--l-cobh:#7a4fa3;--bg:#f6f5f1;--fg:#1d2733;--muted:#5b6672;--card:#fff;--line:#dcd9d2;--accent:#1f5f8b;--warm:#c4661f;--chip:#eceae4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181d;--fg:#e8ecf0;--muted:#9aa5b1;--card:#1c222a;--line:#313a45;--accent:#7fb6e0;--warm:#e89a5c;--chip:#252d37;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14181d;--fg:#e8ecf0;--muted:#9aa5b1;--card:#1c222a;--line:#313a45;--accent:#7fb6e0;--warm:#e89a5c;--chip:#252d37;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 Georgia,'Iowan Old Style',serif;
+ padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:800px;margin:0 auto;padding-block:40px 64px}
+h1,h2{font-family:system-ui,'Segoe UI',Arial,sans-serif;text-wrap:balance;line-height:1.25}
+h1{font-size:30px;margin:0 0 8px}h2{font-size:21px;margin:40px 0 8px}
+.kicker{font:600 12px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.lede{font-size:18px}.meta{color:var(--muted);font:14px/1.5 system-ui,sans-serif}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:24px 0}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.tile b{display:block;font:700 26px/1.1 system-ui,sans-serif;color:var(--accent)}
+.tile span{font:13px/1.4 system-ui,sans-serif;color:var(--muted)}
+figure{margin:20px 0;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px}
+figure img{width:100%;height:auto;display:block}
+figcaption{font:13px/1.5 system-ui,sans-serif;color:#5b6672;margin-top:8px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--card);margin:16px 0}
+table{border-collapse:collapse;width:100%;font:14px/1.4 system-ui,sans-serif;min-width:640px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:var(--chip);font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.note{background:var(--card);border-left:3px solid var(--warm);padding:12px 16px;border-radius:6px;font-size:15px}
+.btn{display:inline-block;background:var(--accent);color:var(--card);text-decoration:none;font:600 15px system-ui,sans-serif;padding:10px 16px;border-radius:8px;margin-right:8px}
+.netcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 12px 8px;margin:24px 0}
+.netcard h2{margin:0 4px 4px;font-size:17px}.netcard p{margin:0 4px 8px;font:13px/1.5 system-ui,sans-serif;color:var(--muted)}
+.tscroll{overflow-x:auto}.transit{display:block;width:100%;min-width:720px;height:auto}
+.transit .trk{fill:none;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}.transit .dash{stroke-dasharray:2 12}
+.transit .old{fill:var(--card);stroke:var(--fg);stroke-width:2.5}.transit .new{fill:var(--warm);stroke:var(--card);stroke-width:3}
+.transit .sname{font:500 11.5px system-ui,sans-serif;fill:var(--muted);text-anchor:middle}.transit .new-t{fill:var(--fg);font-weight:700}
+.transit .snum{font:600 10.5px system-ui,sans-serif;fill:var(--warm);text-anchor:middle}
+.transit .lname{font:700 12px system-ui,sans-serif}
+.legend-inline{display:flex;gap:16px;flex-wrap:wrap;font:13px system-ui,sans-serif;color:var(--muted);margin:6px 4px 4px}
+.legend-inline i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.mapframe{width:100%;height:600px;border:1px solid var(--line);border-radius:12px;display:block;background:var(--card)}
+.bar{display:flex;align-items:center;gap:8px;justify-content:flex-end}.bar span{display:inline-block;height:8px;border-radius:4px;background:var(--warm)}
+a{color:var(--accent)}code{font:13px ui-monospace,Menlo,monospace;background:var(--chip);padding:1px 5px;border-radius:4px}
+</style></head><body><main>
+<p class="kicker">Cork Area Commuter Rail · Census 2022 · eight proposed stations</p>
+<h1>Who will the eight new Cork stations reach, and how many will switch to rail?</h1>
+<p class="lede">Iarnród Éireann plans eight new stations and a service every 10 minutes on Cork's three
+commuter lines. The programme page gives no forecast per station. This analysis uses Census 2022 data for
+every Small Area to show who lives near each proposed station, how they travel to work today, and how many
+extra rail commuters each station could add, today and in 2040.</p>
+<p class="meta">Mankirat Singh · Independent analysis, not an Iarnród Éireann or NTA publication ·
+<a href="https://github.com/bymankirat">Code</a> · <a href="https://bymankirat.github.io/myportfolio/">Portfolio</a></p>
+<div class="tiles"><div class="tile"><b>22,648</b><span>people live within 1 km of the eight proposed stations</span></div><div class="tile"><b>5,130</b><span>of them commute by car today (within 1 km)</span></div><div class="tile"><b>0.8%</b><span>of commuters in the Cork study area take the train today; 74% go by car</span></div><div class="tile"><b>203–1,511</b><span>extra daily rail commuters from the new stations: today&#x27;s service, 2022 homes, to a DART-like service, 2040 homes</span></div></div>
+<section class="netcard" aria-label="Network diagram">
+<h2>The network with eight new stations</h2>
+<p>Cork's three commuter lines, not to scale. Orange: proposed stations, with the number of people within 1 km who drive or are driven to work today.</p>
+<div class="tscroll"><svg viewBox="0 0 920 360" role="img" aria-labelledby="tt" class="transit"><title id="tt">Schematic of Cork's three commuter lines with the eight proposed stations</title><path d="M70 190 L70 120 Q70 72 118 72 L560 72" stroke="var(--l-mallow)" class="trk"/><path d="M560 72 L860 72" stroke="var(--l-mallow)" class="trk dash"/><path d="M70 190 L860 190" stroke="var(--l-midleton)" class="trk"/><path d="M440 190 Q440 300 488 300 L860 300" stroke="var(--l-cobh)" class="trk"/><circle cx="70" cy="72" r="6" class="old"/><text x="70" y="54" class="sname">Cork Kent</text><circle cx="210" cy="72" r="9" class="new"><title>Blackpool/Kilbarry: 2,004 car commuters within 1 km</title></circle><text x="210" y="98" class="sname new-t">Blackpool/Kilbarry</text><text x="210" y="112" class="snum">2,004 by car ≤1 km</text><circle cx="330" cy="72" r="9" class="new"><title>Monard: 219 car commuters within 1 km</title></circle><text x="330" y="54" class="sname new-t">Monard</text><text x="330" y="40" class="snum">219 by car ≤1 km</text><circle cx="450" cy="72" r="9" class="new"><title>Blarney/Stoneview: 30 car commuters within 1 km</title></circle><text x="450" y="98" class="sname new-t">Blarney/Stoneview</text><text x="450" y="112" class="snum">30 by car ≤1 km</text><circle cx="860" cy="72" r="6" class="old"/><text x="860" y="54" class="sname">Mallow</text><circle cx="170" cy="190" r="9" class="new"><title>Tivoli: 1,654 car commuters within 1 km</title></circle><text x="170" y="216" class="sname new-t">Tivoli</text><text x="170" y="230" class="snum">1,654 by car ≤1 km</text><circle cx="260" cy="190" r="9" class="new"><title>Dunkettle: 440 car commuters within 1 km</title></circle><text x="260" y="172" class="sname new-t">Dunkettle</text><text x="260" y="158" class="snum">440 by car ≤1 km</text><circle cx="350" cy="190" r="6" class="old"/><text x="350" y="216" class="sname">Little Island</text><circle cx="440" cy="190" r="6" class="old"/><text x="440" y="172" class="sname">Glounthaune</text><circle cx="560" cy="190" r="9" class="new"><title>Carrigtwohill West: 489 car commuters within 1 km</title></circle><text x="560" y="216" class="sname new-t">Carrigtwohill West</text><text x="560" y="230" class="snum">489 by car ≤1 km</text><circle cx="650" cy="190" r="6" class="old"/><text x="650" y="172" class="sname">Carrigtwohill</text><circle cx="750" cy="190" r="9" class="new"><title>Water-Rock: 232 car commuters within 1 km</title></circle><text x="750" y="216" class="sname new-t">Water-Rock</text><text x="750" y="230" class="snum">232 by car ≤1 km</text><circle cx="860" cy="190" r="6" class="old"/><text x="860" y="172" class="sname">Midleton</text><circle cx="520" cy="300" r="6" class="old"/><text x="520" y="282" class="sname">Fota</text><circle cx="610" cy="300" r="9" class="new"><title>Ballynoe: 62 car commuters within 1 km</title></circle><text x="610" y="326" class="sname new-t">Ballynoe</text><text x="610" y="340" class="snum">62 by car ≤1 km</text><circle cx="690" cy="300" r="6" class="old"/><text x="690" y="282" class="sname">Carrigaloe</text><circle cx="775" cy="300" r="6" class="old"/><text x="775" y="326" class="sname">Rushbrooke</text><circle cx="860" cy="300" r="6" class="old"/><text x="860" y="282" class="sname">Cobh</text></svg></div>
+<div class="legend-inline"><span><i style="background:var(--l-mallow)"></i>Mallow line</span><span><i style="background:var(--l-midleton)"></i>Midleton line</span><span><i style="background:var(--l-cobh)"></i>Cobh line</span><span><i style="background:var(--warm)"></i>Proposed station</span></div>
+</section>
+<p><a class="btn" href="map.html">Open the interactive map →</a> Every Small Area, every station, both scenarios.</p>
+
+<h2>1. Who lives near each proposed station</h2>
+<p>Blackpool/Kilbarry has the most car commuters within 1 km (2,004).
+Each Small Area is counted once, for its nearest proposed station. The station positions are approximate,
+so every station was moved at random by up to 600 m, 300 times:
+the stations that stay in the top three in at least 90% of moves are Blackpool/Kilbarry, Tivoli.</p>
+<iframe class="mapframe" src="map.html" title="Interactive map of Cork Small Areas and rail stations" loading="lazy"></iframe>
+<p class="meta">Click any area or station for details, or <a href="map.html">open the map full screen</a>.</p>
+<figure><img src="figures/3_reach.png" alt="Bar chart of car commuters within 1 and 2 km of each proposed station"></figure>
+<div class="tbl"><table><thead><tr><th>Station</th><th>Line</th><th>People ≤1 km</th><th>…not now ≤1 km of rail</th><th>Car commuters ≤1 km</th><th>Car commuters ≤2 km</th><th>In top 3 if moved ≤600 m</th></tr></thead><tbody><tr><td>Blackpool/Kilbarry</td><td>Mallow line</td><td>12,260</td><td>10,843</td><td><div class="bar">2,004<span style="width:70px"></span></div></td><td>6,836</td><td>100%</td></tr><tr><td>Tivoli</td><td>Cobh/Midleton line</td><td>6,023</td><td>6,023</td><td><div class="bar">1,654<span style="width:57px"></span></div></td><td>5,746</td><td>100%</td></tr><tr><td>Carrigtwohill West</td><td>Midleton line</td><td>1,464</td><td>405</td><td><div class="bar">489<span style="width:17px"></span></div></td><td>1,125</td><td>39%</td></tr><tr><td>Dunkettle</td><td>Cobh/Midleton line</td><td>1,318</td><td>1,318</td><td><div class="bar">440<span style="width:15px"></span></div></td><td>2,752</td><td>38%</td></tr><tr><td>Water-Rock</td><td>Midleton line</td><td>669</td><td>669</td><td><div class="bar">232<span style="width:8px"></span></div></td><td>1,197</td><td>6%</td></tr><tr><td>Monard</td><td>Mallow line</td><td>599</td><td>599</td><td><div class="bar">219<span style="width:7px"></span></div></td><td>1,117</td><td>14%</td></tr><tr><td>Ballynoe</td><td>Cobh line</td><td>204</td><td>204</td><td><div class="bar">62<span style="width:2px"></span></div></td><td>716</td><td>0%</td></tr><tr><td>Blarney/Stoneview</td><td>Mallow line</td><td>111</td><td>111</td><td><div class="bar">30<span style="width:1px"></span></div></td><td>898</td><td>2%</td></tr></tbody></table></div>
+
+<h2>2. How rail use falls with distance</h2>
+<p>Only 0.8% of commuters in the study area take the train today. The share is highest near
+stations and falls quickly with distance, and it is lower in the city than in the towns at the same
+distance, so the city and the county towns get separate curves.</p>
+<p>Within half a kilometre of a station, 5.4% of commuters in the county towns and 3.0% in the city take the train today, against 25.7% around the north-east Dublin DART stations, which run every 10–15 minutes at peak. The gap is the size of the prize from the planned 10-minute service. The Dublin curve is an upper analogue, not a forecast: Dublin has more jobs within a short train ride, and more congestion to avoid.</p>
+<figure><img src="figures/1_distance_decay.png" alt="Line chart of rail share by distance to the nearest station, Cork and Dublin DART">
+<figcaption>Share of people who travel to work going by train, by distance from home to the nearest station.</figcaption></figure>
+
+<h2>3. Does distance explain station use? A leave-one-out test</h2>
+<p>For each existing Cork station, the curve was fitted without that station's area and used to predict its
+rail commuters. With one curve for every area, the ranking of stations is roughly right (correlation 0.86), but Kent's own area was predicted at 794 rail commuters against 326 actual, because people in the city centre can walk or take the bus to work. With separate curves for the city and the county towns, Kent's prediction becomes 246, the median error per station falls from 43% to 25%, and the correlation is 0.95. The Cobh branch fits worst: Carrigaloe, which has few homes nearby, is over-predicted and Cobh under-predicted, a reminder that a station's surroundings matter as well as distance. The estimates below use the split curves and should be read as accurate to tens of percent, not to the person.</p>
+<figure><img src="figures/2_leave_one_out.png" alt="Scatter of predicted against actual rail commuters per existing Cork station"></figure>
+<div class="tbl"><table><thead><tr><th>Station</th><th>Small areas</th><th>Commuters</th><th>Rail, actual</th><th>Predicted, one curve</th><th>Predicted, city/county curves</th></tr></thead><tbody><tr><td>Cork</td><td>621</td><td>56,369</td><td>326</td><td>794</td><td>246</td></tr><tr><td>Midleton</td><td>53</td><td>6,201</td><td>194</td><td>124</td><td>172</td></tr><tr><td>Cobh</td><td>39</td><td>3,766</td><td>156</td><td>89</td><td>108</td></tr><tr><td>Mallow</td><td>62</td><td>5,647</td><td>133</td><td>76</td><td>119</td></tr><tr><td>Carrigtwohill</td><td>22</td><td>2,773</td><td>75</td><td>69</td><td>89</td></tr><tr><td>Rushbrooke</td><td>32</td><td>3,408</td><td>61</td><td>79</td><td>105</td></tr><tr><td>Little Island</td><td>73</td><td>8,014</td><td>48</td><td>47</td><td>48</td></tr><tr><td>Glounthaune</td><td>9</td><td>812</td><td>47</td><td>18</td><td>23</td></tr><tr><td>Carrigaloe</td><td>24</td><td>2,610</td><td>14</td><td>31</td><td>51</td></tr></tbody></table></div>
+
+<h2>4. Extra rail commuters from each new station</h2>
+<p>A new station moves some homes closer to rail. The extra commuters are the people in those homes times
+the rise in the curve between their old and new distance. With today's service and 2022 homes the gain is
+203 people a day across all eight stations.
+With a DART-like service it is 1,016, and 1,417–1,511 with 2040 population (39–49% growth from 2022, from CMATS).
+These are people travelling to work only; students, leisure trips and park-and-ride users from further away add to them.</p>
+<figure><img src="figures/4_extra_commuters.png" alt="Range of extra daily rail commuters per station between scenarios"></figure>
+<div class="tbl"><table><thead><tr><th>Station</th><th>Today&#x27;s service</th><th>95% low</th><th>95% high</th><th>DART-like, 2022</th><th>DART-like, 2040 low</th><th>DART-like, 2040 high</th></tr></thead><tbody><tr><td>Blackpool/Kilbarry</td><td>72</td><td>55</td><td>88</td><td>341</td><td>476</td><td>507</td></tr><tr><td>Tivoli</td><td>56</td><td>45</td><td>69</td><td>285</td><td>397</td><td>424</td></tr><tr><td>Dunkettle</td><td>27</td><td>21</td><td>33</td><td>155</td><td>216</td><td>231</td></tr><tr><td>Blarney/Stoneview</td><td>22</td><td>19</td><td>25</td><td>90</td><td>125</td><td>134</td></tr><tr><td>Monard</td><td>17</td><td>15</td><td>20</td><td>83</td><td>116</td><td>124</td></tr><tr><td>Water-Rock</td><td>6</td><td>4</td><td>8</td><td>28</td><td>39</td><td>42</td></tr><tr><td>Ballynoe</td><td>1</td><td>1</td><td>2</td><td>19</td><td>26</td><td>28</td></tr><tr><td>Carrigtwohill West</td><td>2</td><td>1</td><td>3</td><td>15</td><td>21</td><td>22</td></tr></tbody></table></div>
+
+<h2>What this means for planning</h2>
+<p>The stations with the largest reach are where the 10-minute service matters most. Several stations (Monard,
+Carrigtwohill West, Water-Rock) mainly serve homes and jobs that are planned but not yet built, so Census 2022
+understates them by design: their case rests on development, which this analysis cannot see. Where the
+estimate is small even under a DART-like service, the case for the station depends on park and ride and new
+development rather than existing homes.</p>
+
+<h2>Limitations</h2>
+<p class="note">Station positions are estimated from published descriptions, not survey drawings; edit
+<code>data/new_stations.csv</code> to update them, and the location test above shows how much that matters.
+Distances are straight lines, not walking routes. The Census counts the main mode to work in April 2022,
+when many people worked from home part of the week. Growth to 2040 is applied evenly, while real growth
+will concentrate in planned areas. The Dublin analogue includes destinations and congestion that Cork lacks.</p>
+
+<h2>Reproduce it</h2>
+<p><code>pip install -r requirements.txt</code>, <code>python tests/run_tests.py</code>, then
+<code>python run_pipeline.py</code>. Every number on this page is read from <code>results/</code>.</p>
+<p class="meta">Data: CSO, Census 2022 Small Area Population Statistics, Theme 11 (Census Hub feature service); Iarnród Éireann real-time API (station list); Iarnród Éireann, Cork Area Commuter Rail programme page (8 proposed stations);
+NTA, Cork Metropolitan Area Transport Strategy 2040 (2020): 50-60% population growth by 2040; CSO, Census 2022 summary results for Cork: 584,156 (2022), up 41,288 from 2016. Catchments: 1 km, 2 km straight line.</p>
+</main></body></html>

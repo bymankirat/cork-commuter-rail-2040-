@@ -24,16 +24,20 @@ from config import (BOX_CORK, BOX_DUBLIN_NE, CORK_STATIONS, DART_ANALOGUE, FIGS,
 
 
 def pick(stations: pd.DataFrame, names: list[str], label: str) -> pd.DataFrame:
-    low = stations.assign(key=stations["name"].str.strip().str.lower())
-    want = [n.lower() for n in names]
+    # names are compared without spaces or case: the API writes "LittleIsland" for Little Island
+    norm = lambda x: "".join(str(x).lower().split())  # noqa: E731
+    low = stations.assign(key=stations["name"].map(norm))
+    want = [norm(n) for n in names]
     # exact name first, else a station whose name starts with it ("Howth Junction & Donaghmede")
-    hit = low["key"].apply(lambda k: next((w for w in want if k == w or k.startswith(w + " ")), None))
+    hit = low["key"].apply(lambda k: next((w for w in want if k == w or k.startswith(w)), None))
     out = low.assign(match=hit).dropna(subset=["match"]).drop_duplicates("match")
-    missing = sorted(set(want) - set(out["match"]))
+    missing = sorted(set(want) - set(out["match"]))  # noqa: C401
     if missing:
         print(f"  [!] {label}: not found in the station list: {missing}")
     if len(out) < len(names) // 2:
         raise SystemExit(f"Too few {label} stations found; check names in src/config.py")
+    canon = {norm(n): n for n in names}
+    out["name"] = out["match"].map(canon)          # show "Little Island", not the API's "LittleIsland"
     out = out.drop(columns=["key", "match"]).reset_index(drop=True)
     out["is_target"] = True
     return out
@@ -69,8 +73,14 @@ def main(argv):
     print("2. Distance-decay curves")
     dc, ic = M.nearest(cork, cork_st)
     inside = dc < M.MAX_KM
-    p_cork = M.curve(cork["travellers"].to_numpy()[inside], cork["rail"].to_numpy()[inside], dc[inside])
-    tabs = [M.curve_table(cork["travellers"].to_numpy()[inside], cork["rail"].to_numpy()[inside], dc[inside], "Cork today")]
+    T, R, CITY = cork["travellers"].to_numpy(), cork["rail"].to_numpy(), cork["is_city"].to_numpy(bool)
+    p_cork = M.split_curves(cork, dc, inside)          # separate curves for Cork city and the county towns
+    tabs = [M.curve_table(T[inside & CITY], R[inside & CITY], dc[inside & CITY], "Cork city today"),
+            M.curve_table(T[inside & ~CITY], R[inside & ~CITY], dc[inside & ~CITY], "Cork towns today")]
+    # city areas use less rail at any distance; the same ratio scales the DART analogue for them
+    near = inside & (dc <= 1.0)
+    city_ratio = float((R[near & CITY].sum() / T[near & CITY].sum()) / (R[near & ~CITY].sum() / T[near & ~CITY].sum())) \
+        if (near & CITY).any() and (near & ~CITY).any() else 1.0
     p_dart = None
     if dub is not None and dart_st is not None:
         if demo_run:
@@ -78,10 +88,13 @@ def main(argv):
         else:   # every station in the box, so homes nearer another line are not counted
             x0, y0, x1, y1 = BOX_DUBLIN_NE
             box = stations[stations["lon"].between(x0 - 0.05, x1 + 0.05) & stations["lat"].between(y0 - 0.05, y1 + 0.05)]
-            all_dub = box.merge(dart_st[["name", "is_target"]], on="name", how="left").fillna({"is_target": False})
+            box = box.assign(key=box["name"].map(lambda x: "".join(str(x).lower().split())))
+            tgt = set(dart_st["name"].map(lambda x: "".join(str(x).lower().split())))
+            all_dub = box.assign(is_target=box["key"].map(lambda k: any(k.startswith(t) for t in tgt))).drop(columns="key")
         dd, idd = M.nearest(dub, all_dub)
         is_dart = all_dub["is_target"].astype(bool).to_numpy()[idd] & (dd < MAX_KM)
-        p_dart = M.curve(dub["travellers"].to_numpy()[is_dart], dub["rail"].to_numpy()[is_dart], dd[is_dart])
+        p_d = M.curve(dub["travellers"].to_numpy()[is_dart], dub["rail"].to_numpy()[is_dart], dd[is_dart])
+        p_dart = {"county": p_d, "city": p_d * min(city_ratio, 1.0)}
         tabs.append(M.curve_table(dub["travellers"].to_numpy()[is_dart], dub["rail"].to_numpy()[is_dart],
                                   dd[is_dart], "Dublin DART suburbs"))
     curve_tab = pd.concat(tabs, ignore_index=True)
@@ -89,17 +102,20 @@ def main(argv):
 
     print("3. Leave-one-station-out check (Cork)")
     lo = M.leave_one_out(cork, cork_st)
+    lo2 = M.leave_one_out(cork, cork_st, split=True)
+    lo["predicted_split"] = lo2["predicted_rail"].to_numpy()
     lo["error_pct"] = 100 * (lo["predicted_rail"] - lo["actual_rail"]) / lo["actual_rail"].replace(0, np.nan)
+    lo["error_split_pct"] = 100 * (lo["predicted_split"] - lo["actual_rail"]) / lo["actual_rail"].replace(0, np.nan)
     print(lo.round(1).to_string(index=False))
     corr = float(np.corrcoef(lo["actual_rail"], lo["predicted_rail"])[0, 1]) if len(lo) > 2 else float("nan")
+    towns = lo[lo["station"].str.lower() != "cork"]
 
     print("4. New stations")
     rch = M.reach(cork, new, cork_st)
     e_cork = M.extra_commuters(cork, new, cork_st, p_cork)
     g_lo, g_hi = M.growth_2040()
     est = pd.DataFrame({"station": new["station"], "cork_2022": e_cork.to_numpy()})
-    boot = M.bootstrap_extras(cork, new, cork_st, cork["travellers"].to_numpy()[inside],
-                              cork["rail"].to_numpy()[inside], dc[inside], N_BOOT, rng)
+    boot = M.bootstrap_extras(cork, new, cork_st, T[inside], R[inside], dc[inside], N_BOOT, rng, CITY[inside])
     est["cork_2022_low"], est["cork_2022_high"] = boot["low"].to_numpy(), boot["high"].to_numpy()
     if p_dart is not None:
         est["dart_2022"] = M.extra_commuters(cork, new, cork_st, p_dart).to_numpy()
@@ -121,6 +137,14 @@ def main(argv):
         "cork_rail": float(cork["rail"].sum()), "cork_car": float(cork["car"].sum()),
         "loo_corr": corr, "loo_total_ratio": float(lo["predicted_rail"].sum() / lo["actual_rail"].sum()),
         "loo_median_abs_error_pct": float(lo["error_pct"].abs().median()),
+        "loo_towns_median_abs_error_split_pct": float(towns["error_split_pct"].abs().median()),
+        "loo_towns_median_abs_error_pct": float(towns["error_pct"].abs().median()),
+        "kent_actual": float(lo.loc[lo["station"].str.lower() == "cork", "actual_rail"].sum()),
+        "kent_predicted_single": float(lo.loc[lo["station"].str.lower() == "cork", "predicted_rail"].sum()),
+        "kent_predicted_split": float(lo.loc[lo["station"].str.lower() == "cork", "predicted_split"].sum()),
+        "loo_median_abs_error_split_pct": float(lo["error_split_pct"].abs().median()),
+        "loo_corr_split": float(np.corrcoef(lo["actual_rail"], lo["predicted_split"])[0, 1]) if len(lo) > 2 else float("nan"),
+        "city_ratio": city_ratio,
         "growth_2040": [g_lo, g_hi], "has_dart": p_dart is not None,
         "dart_small_areas": int(is_dart.sum()) if p_dart is not None else 0,
         "totals": {k: float(out[k].sum()) for k in ["cork_2022", "dart_2022", "dart_2040_low", "dart_2040_high",

@@ -63,24 +63,48 @@ def curve_table(trav, rail, d, label: str) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def p_at(p: np.ndarray, d: np.ndarray) -> np.ndarray:
+def p_at(p, d: np.ndarray, is_city=None) -> np.ndarray:
+    """Rail share at distance d. p is one curve, or {"city": curve, "county": curve} with is_city
+    saying which applies to each area."""
     b = band_of(np.asarray(d))
-    return np.where(b >= 0, p[np.clip(b, 0, None)], 0.0)
+    bb = np.clip(b, 0, None)
+    if isinstance(p, dict):
+        v = np.where(np.asarray(is_city, bool), p["city"][bb], p["county"][bb])
+    else:
+        v = p[bb]
+    return np.where(b >= 0, v, 0.0)
 
 
-def leave_one_out(sa: pd.DataFrame, st: pd.DataFrame) -> pd.DataFrame:
+def split_curves(sa: pd.DataFrame, d: np.ndarray, keep: np.ndarray) -> dict:
+    t, r, c = sa["travellers"].to_numpy(), sa["rail"].to_numpy(), sa["is_city"].to_numpy(bool)
+    return {"city": curve(t[keep & c], r[keep & c], d[keep & c]),
+            "county": curve(t[keep & ~c], r[keep & ~c], d[keep & ~c])}
+
+
+def leave_one_out(sa: pd.DataFrame, st: pd.DataFrame, split: bool = False) -> pd.DataFrame:
     """For each existing station, fit the curve without its catchment and predict its rail
-    commuters. Tests whether distance alone explains station use."""
+    commuters. Tests whether distance alone explains station use. split=True uses separate city
+    and county curves (a group with under 20 areas left falls back to all areas)."""
     d, i = nearest(sa, st)
     keep = d < MAX_KM
+    t, r = sa["travellers"].to_numpy(), sa["rail"].to_numpy()
+    city = sa["is_city"].to_numpy(bool) if "is_city" in sa else np.zeros(len(sa), bool)
     out = []
     for k, name in enumerate(st["name"]):
         mine = keep & (i == k)
         if mine.sum() < 3:
             continue
         others = keep & ~mine
-        p = curve(sa["travellers"].to_numpy()[others], sa["rail"].to_numpy()[others], d[others])
-        pred = float((sa["travellers"].to_numpy()[mine] * p_at(p, d[mine])).sum())
+        if split:
+            pred = 0.0
+            for g in (city, ~city):
+                o = others & g if (others & g).sum() >= 20 else others
+                pg = curve(t[o], r[o], d[o])
+                sel = mine & g
+                pred += float((t[sel] * p_at(pg, d[sel])).sum())
+        else:
+            p = curve(t[others], r[others], d[others])
+            pred = float((t[mine] * p_at(p, d[mine])).sum())
         out.append({"station": name, "small_areas": int(mine.sum()),
                     "travellers": float(sa["travellers"][mine].sum()),
                     "actual_rail": float(sa["rail"][mine].sum()), "predicted_rail": pred})
@@ -110,19 +134,25 @@ def extra_commuters(sa: pd.DataFrame, new: pd.DataFrame, existing: pd.DataFrame,
     """Extra daily rail commuters each new station would add, under curve p."""
     dn, ino = nearest(sa, new)
     de, _ = nearest(sa, existing)
-    gain = sa["travellers"].to_numpy() * np.clip(p_at(p, dn) - p_at(p, de), 0, None)
+    c = sa["is_city"].to_numpy(bool) if "is_city" in sa else None
+    gain = sa["travellers"].to_numpy() * np.clip(p_at(p, dn, c) - p_at(p, de, c), 0, None)
     gain = np.where(dn < de, gain, 0.0)
     s = pd.Series(np.bincount(ino, weights=gain, minlength=len(new)), index=new["station"].to_numpy())
     return s
 
 
-def bootstrap_extras(sa, new, existing, calib_trav, calib_rail, calib_d, n, rng) -> pd.DataFrame:
-    """Uncertainty from the curve: resample the calibration areas, refit, re-predict."""
+def bootstrap_extras(sa, new, existing, calib_trav, calib_rail, calib_d, n, rng, calib_city=None) -> pd.DataFrame:
+    """Uncertainty from the curve(s): resample the calibration areas, refit, re-predict."""
     m = len(calib_trav)
     draws = []
     for _ in range(n):
         j = rng.integers(0, m, m)
-        p = curve(calib_trav[j], calib_rail[j], calib_d[j])
+        if calib_city is None:
+            p = curve(calib_trav[j], calib_rail[j], calib_d[j])
+        else:
+            c = calib_city[j]
+            p = {"city": curve(calib_trav[j][c], calib_rail[j][c], calib_d[j][c]),
+                 "county": curve(calib_trav[j][~c], calib_rail[j][~c], calib_d[j][~c])}
         draws.append(extra_commuters(sa, new, existing, p).to_numpy())
     a = np.array(draws)
     return pd.DataFrame({"station": new["station"].to_numpy(), "low": np.percentile(a, 2.5, axis=0),

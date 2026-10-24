@@ -11,7 +11,24 @@ uses **Census 2022 data for every Small Area** to answer three questions:
 3. **Extra rail commuters.** How many more people would take the train to work from each new station,
    with today's service and a DART-like one, for 2022 and 2040 population?
 
+**[Read the report →](https://bymankirat.github.io/cork-commuter-rail-2040/)** ·
+**[Interactive map →](https://bymankirat.github.io/cork-commuter-rail-2040/map.html)**
+
 > Independent analysis. Not an Iarnród Éireann or NTA publication.
+
+## Results in brief
+
+* **22,648 people** live within 1 km of the eight proposed stations, and **5,130** of them drive or are
+  driven to work (Census 2022). Blackpool/Kilbarry (2,004) and Tivoli (1,654) reach the most, and stay in
+  the top three in every one of 300 tests that move each station by up to 600 m.
+* Only **0.8%** of commuters in the study area take the train today (74% go by car). Within 500 m of a
+  station it is 5.4% in the county towns and 3.0% in the city, against **25.7%** around north-east
+  Dublin's DART stations.
+* Separate city and county curves predict each existing station's rail commuters, with that station
+  left out, at a median error of 25% (correlation 0.95); one curve for all areas missed by 43%.
+* The new stations would add about **200** daily rail commuters with today's service and 2022 homes,
+  about **1,000** with a DART-like service, and **1,400–1,500** with 2040 population. Monard,
+  Carrigtwohill West and Water-Rock mainly serve development not yet built, which Census 2022 cannot see.
 
 ## Design choices
 

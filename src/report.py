@@ -121,13 +121,21 @@ def write():
     top_car = ns.sort_values("car_commuters_1km", ascending=False)
     lead = top_car.iloc[0]
     stable = ns[ns["top3_by_car_1km_pct"] >= 90]["station"].tolist()
-    cork_near = dd[(dd["curve"] == "Cork today")].iloc[0]["rail_share_pct"]
+    def first(label):
+        r = dd[(dd["curve"] == label) & dd["rail_share_pct"].notna()]
+        return float(r.iloc[0]["rail_share_pct"]) if len(r) else float("nan")
+    city_near, town_near = first("Cork city today"), first("Cork towns today")
     dart_rows = dd[dd["curve"] == "Dublin DART suburbs"]
     dart_near = dart_rows.iloc[0]["rail_share_pct"] if len(dart_rows) else float("nan")
-    ratio = S["loo_total_ratio"]
-    valid_txt = (f"Predicted and actual rail commuters agree in total to within {abs(ratio - 1) * 100:.0f}% "
-                 f"(correlation across stations {S['loo_corr']:.2f}; median error per station "
-                 f"{S['loo_median_abs_error_pct']:.0f}%).")
+    valid_txt = (f"With one curve for every area, the ranking of stations is roughly right (correlation {S['loo_corr']:.2f}), "
+                 f"but Kent's own area was predicted at {n0(S['kent_predicted_single'])} rail commuters against "
+                 f"{n0(S['kent_actual'])} actual, because people in the city centre can walk or take the bus to work. "
+                 f"With separate curves for the city and the county towns, Kent's prediction becomes "
+                 f"{n0(S['kent_predicted_split'])}, the median error per station falls from "
+                 f"{S['loo_median_abs_error_pct']:.0f}% to {S['loo_median_abs_error_split_pct']:.0f}%, and the correlation is "
+                 f"{S['loo_corr_split']:.2f}. The Cobh branch fits worst: Carrigaloe, which has few homes nearby, is over-predicted "
+                 "and Cobh under-predicted, a reminder that a station's surroundings matter as well as distance. The "
+                 "estimates below use the split curves and should be read as accurate to tens of percent, not to the person.")
 
     tiles = [
         (n0(T["pop_1km"]), "people live within 1 km of the eight proposed stations"),
@@ -156,12 +164,14 @@ def write():
     est_tbl = table(ns.sort_values("dart_2040_high" if S["has_dart"] else "cork_2022", ascending=False), est_cols)
     lo_tbl = table(lo.sort_values("actual_rail", ascending=False), [
         ("station", "Station", None), ("small_areas", "Small areas", n0), ("travellers", "Commuters", n0),
-        ("actual_rail", "Rail, actual", n0), ("predicted_rail", "Rail, predicted", n0)])
+        ("actual_rail", "Rail, actual", n0), ("predicted_rail", "Predicted, one curve", n0),
+        ("predicted_split", "Predicted, city/county curves", n0)])
 
     dart_par = ""
     if S["has_dart"]:
-        dart_par = (f"<p>Within half a kilometre of a station, {cork_near:.1f}% of commuters take the train in Cork "
-                    f"today, against {dart_near:.1f}% around the north-east Dublin DART stations, which run every "
+        dart_par = (f"<p>Within half a kilometre of a station, {town_near:.1f}% of commuters in the county towns and "
+                    f"{city_near:.1f}% in the city take the train today, against {dart_near:.1f}% around the north-east "
+                    "Dublin DART stations, which run every "
                     "10–15 minutes at peak. The gap is the size of the prize from the planned 10-minute service. "
                     "The Dublin curve is an upper analogue, not a forecast: Dublin has more jobs within a short "
                     "train ride, and more congestion to avoid.</p>")
@@ -198,7 +208,8 @@ so every station was moved at random by up to {SHIFT_M} m, {300} times:
 
 <h2>2. How rail use falls with distance</h2>
 <p>Only {rail_pct:.1f}% of commuters in the study area take the train today. The share is highest near
-stations and falls quickly with distance.</p>
+stations and falls quickly with distance, and it is lower in the city than in the towns at the same
+distance, so the city and the county towns get separate curves.</p>
 {dart_par}
 <figure><img src="figures/1_distance_decay.png" alt="Line chart of rail share by distance to the nearest station, Cork and Dublin DART">
 <figcaption>Share of people who travel to work going by train, by distance from home to the nearest station.</figcaption></figure>

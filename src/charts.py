@@ -20,9 +20,10 @@ plt.rcParams.update({
 
 def curves(tab: pd.DataFrame, path):
     fig, ax = plt.subplots(figsize=(7.5, 3.6))
-    for label, col in [("Cork today", BLUE), ("Dublin DART suburbs", ORANGE)]:
-        t = tab[tab["curve"] == label]
-        ax.plot(t["band_mid_km"], t["rail_share_pct"], "-o", color=col, lw=2, ms=6, label=label)
+    styles = {"Cork city today": (BLUE, "-o"), "Cork towns today": ("#2e7d5b", "-o"), "Dublin DART suburbs": (ORANGE, "-o")}
+    for label, t in tab.groupby("curve", sort=False):
+        col, mk = styles.get(label, (GREY, "-o"))
+        ax.plot(t["band_mid_km"], t["rail_share_pct"], mk, color=col, lw=2, ms=6, label=label)
     ax.set_xlabel("Distance from home to nearest station (km, band middle)")
     ax.set_ylabel("% of commuters going by train")
     ax.set_ylim(bottom=0)
@@ -32,17 +33,27 @@ def curves(tab: pd.DataFrame, path):
 
 
 def validation(lo: pd.DataFrame, path):
-    fig, ax = plt.subplots(figsize=(5.6, 4.6))
-    m = max(lo["actual_rail"].max(), lo["predicted_rail"].max()) * 1.1
-    ax.plot([0, m], [0, m], color=GREY, lw=1)
-    ax.scatter(lo["actual_rail"], lo["predicted_rail"], s=48, color=BLUE, edgecolor="white", linewidth=1.5, zorder=3)
-    for _, r in lo.iterrows():
-        ax.annotate(r["station"], (r["actual_rail"], r["predicted_rail"]), xytext=(5, 3),
-                    textcoords="offset points", fontsize=8, color=INK)
-    ax.set_xlim(0, m)
-    ax.set_ylim(0, m)
-    ax.set_xlabel("Actual rail commuters, Census 2022")
-    ax.set_ylabel("Predicted (station left out of the fit)")
+    """Log scales, so small and large stations are both readable."""
+    fig, ax = plt.subplots(figsize=(6.4, 5.0))
+    cols = [lo["actual_rail"], lo["predicted_rail"]] + ([lo["predicted_split"]] if "predicted_split" in lo else [])
+    lo_v = max(min(c[c > 0].min() for c in cols) * 0.7, 1)
+    hi_v = max(c.max() for c in cols) * 1.4
+    ax.plot([lo_v, hi_v], [lo_v, hi_v], color=GREY, lw=1)
+    ax.scatter(lo["actual_rail"], lo["predicted_rail"], s=40, facecolor="none", edgecolor=GREY, linewidth=1.5,
+               zorder=3, label="One curve for all areas")
+    if "predicted_split" in lo:
+        ax.scatter(lo["actual_rail"], lo["predicted_split"], s=48, color=BLUE, edgecolor="white", linewidth=1.5,
+                   zorder=4, label="Separate city and county curves")
+        for k, (_, r) in enumerate(lo.sort_values("actual_rail").iterrows()):
+            ax.annotate(r["station"], (r["actual_rail"], r["predicted_split"]), xytext=(6, 8 if k % 2 else -12),
+                        textcoords="offset points", fontsize=8, color=INK)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlim(lo_v, hi_v)
+    ax.set_ylim(lo_v, hi_v)
+    ax.set_xlabel("Actual rail commuters, Census 2022 (log scale)")
+    ax.set_ylabel("Predicted, station left out of the fit (log scale)")
+    ax.legend(frameon=False, fontsize=8, loc="upper left")
     fig.savefig(path)
     plt.close(fig)
 

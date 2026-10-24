@@ -151,4 +151,7 @@ def tidy_small_areas(path: Path) -> pd.DataFrame:
         "bus": df["T11_1_BUW"], "walk_cycle": df["T11_1_FW"] + df["T11_1_BIW"],
     })
     out["travellers"] = df["T11_1_TW"] - df["T11_1_WMFHW"] - df["T11_1_NSW"]  # people who travel to work
+    # Cork City Council area: rail use near a station is lower there because jobs are within walking
+    # or bus distance, so the city gets its own distance curve
+    out["is_city"] = out["la"].astype(str).str.upper().str.contains("CORK CITY")
     return out[out["travellers"] > 0].drop_duplicates("sa").reset_index(drop=True)

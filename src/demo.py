@@ -33,7 +33,7 @@ def make(seed=3, n_cork=2500, n_dub=900):
         car = np.round(trav * 0.6)
         return pd.DataFrame({"sa": [f"{tag}{i}" for i in range(n)], "ed": "demo", "la": tag, "lon": lon,
                              "lat": lat, "pop": trav * 2.1, "rail": rail, "car": car, "bus": 0.0,
-                             "walk_cycle": 0.0, "travellers": trav})
+                             "walk_cycle": 0.0, "travellers": trav, "is_city": False})
 
     return (areas(cork_st, n_cork, 0.06, 1.5, "C"), areas(dub_st, n_dub, 0.22, 1.2, "D"),
             cork_st, dub_st)

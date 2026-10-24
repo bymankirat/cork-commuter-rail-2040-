@@ -1,0 +1,36 @@
+{
+  "demo": false,
+  "station_source": "api",
+  "cork_small_areas": 1416,
+  "cork_travellers": 144262.0,
+  "cork_rail": 1183.0,
+  "cork_car": 106156.0,
+  "loo_corr": 0.8618366468423022,
+  "loo_total_ratio": 1.2584187719168132,
+  "loo_median_abs_error_pct": 43.013195787200004,
+  "loo_towns_median_abs_error_split_pct": 24.484072772528286,
+  "loo_towns_median_abs_error_pct": 39.64694439417737,
+  "kent_actual": 326.0,
+  "kent_predicted_single": 793.5875635624479,
+  "kent_predicted_split": 245.84725503104465,
+  "loo_median_abs_error_split_pct": 24.586731585569126,
+  "loo_corr_split": 0.9472746305746143,
+  "city_ratio": 0.568906500906501,
+  "growth_2040": [
+    1.3939803751052802,
+    1.4869124001122989
+  ],
+  "has_dart": true,
+  "dart_small_areas": 724,
+  "totals": {
+    "cork_2022": 202.8364394494692,
+    "dart_2022": 1016.4490306551785,
+    "dart_2040_low": 1416.910001028104,
+    "dart_2040_high": 1511.3706677633113,
+    "car_commuters_1km": 5130.0,
+    "car_commuters_2km": 20387.0,
+    "pop_1km": 22648.0,
+    "pop_2km": 90473.0,
+    "pop_new_to_rail_1km": 20172.0
+  }
+}

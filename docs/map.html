@@ -34,7 +34,6 @@ select{width:100%;font:inherit;color:var(--fg);background:var(--bg);border:1px s
 .card .flag{font-size:11px;color:var(--warm)}
 .foot{color:var(--muted);font-size:12px;margin-top:auto}
 a{color:var(--accent)}
-.tiles-dark{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9)}
 .leaflet-popup-content{font:13px/1.45 system-ui,sans-serif;margin:12px 14px}
 .pop h3{margin:0 0 6px;font-size:14px}
 .pop table{border-collapse:collapse;width:100%}
@@ -79,7 +78,7 @@ a{color:var(--accent)}
     <div class="cards" id="cards"></div>
   </div>
   <p class="foot">Station positions are approximate. Independent analysis by Mankirat Singh, not an Iarnród Éireann publication.
-  Basemap © OpenStreetMap contributors.</p>
+  Basemap © Esri and OpenStreetMap contributors.</p>
 </aside>
 <div id="map" role="region" aria-label="Map of Cork Small Areas and rail stations"></div>
 
@@ -92,12 +91,27 @@ a{color:var(--accent)}
   var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches &&
              document.documentElement.getAttribute('data-theme') !== 'light';
   var map = L.map('map', { zoomControl: true, preferCanvas: true });
-  map.fitBounds(L.latLngBounds(D.proposed.map(function (s) { return [s.lat, s.lon]; })).pad(0.35));
-  // OpenStreetMap tiles need no key; in dark mode they are inverted to match the page
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, className: dark ? 'tiles-dark' : '',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  var home = L.latLngBounds(D.proposed.map(function (s) { return [s.lat, s.lon]; })).pad(0.35);
+  map.fitBounds(home);
+  // Esri grey basemaps need no key and also load when the page is opened from disk;
+  // OpenStreetMap is the fallback if they fail.
+  var esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/' +
+    (dark ? 'World_Dark_Gray_Base' : 'World_Light_Gray_Base') + '/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 16, attribution: 'Tiles &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors'
   }).addTo(map);
+  var fails = 0;
+  esri.on('tileerror', function () {
+    if (++fails === 4) {
+      map.removeLayer(esri);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
+    }
+  });
+  // inside the report the map sits in an iframe that may get its size late: re-measure and re-fit
+  function refit() { map.invalidateSize(); map.fitBounds(home); }
+  window.addEventListener('load', refit);
+  window.addEventListener('resize', function () { map.invalidateSize(); });
+  setTimeout(refit, 300);
 
   var BLUES = ['#eef4f9', '#c9dcec', '#97bcd9', '#5f95bf', '#2f6d9f', '#16466f'];
   var ORANGES = ['#fdf1e6', '#f9d3b0', '#f2ab74', '#e3823f', '#c4661f', '#8a420f'];
